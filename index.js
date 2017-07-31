@@ -8,12 +8,13 @@ var assign = require('object-assign');
 var fs = require('fs-extra');
 var chalk = require('chalk');
 var Q = require('q');
+var minimatch = require("minimatch");
 
 var normalizePath = function (path) {
     return path.replace(/\\/g, '/');
 };
 
-module.exports = function (options, callback) {
+module.exports = function (options, callback, fileCallback) {
 
     return Q.Promise(function(resolve, reject){
         options = assign({
@@ -23,7 +24,8 @@ module.exports = function (options, callback) {
             "pass": "",
             "remotePath": "",
             "sourcePath": "./",
-            "remotePlatform": "unix"
+            "remotePlatform": "unix",
+            "excludes": ["assets/**"]              //multiple minimatch patterns
         }, options);
 
 
@@ -50,16 +52,26 @@ module.exports = function (options, callback) {
         var items = [];
         fs.walk(sourcePath)
             .on('data', function (item) {
-                if (!item.stats.isDirectory()) {
+                //filter mechanics
+                var reject = false;
+                if (options.excludes && options.excludes.length) {
+                  var tmpPath = path.relative(options.sourcePath, item.path);
+                  reject = options.excludes.some(function(pattern) {
+                    return minimatch(tmpPath, pattern, { matchBase: true });
+                  });
+                }
+                if (!reject && !item.stats.isDirectory()) {
                     items.push(item);
                 }
             })
             .on('end', function () {
                 fileLength = items.length;
 
+
                 if (fileLength <= 0) {
                     console.log('sftp2:', chalk.yellow('No files uploaded'));
                 } else {
+                  console.log('sftp2: matched: '+fileLength,items);
                     return uploadFiles(items);
                 }
             });
@@ -128,10 +140,12 @@ module.exports = function (options, callback) {
                         stream.on('close', function (err) {
 
                             if (err) {
+                                if (fileCallback) fileCallback(false, relativePath, err);
                                 throw new Error('sftp2', err);
                             } else {
 
                                 fileCount++;
+                                if (fileCallback) fileCallback(true, relativePath);
 
                             }
 
@@ -181,7 +195,7 @@ module.exports = function (options, callback) {
                         // console.log('SFTP :: SFTP session closed');
                         sftp = null;
                         if (!finished) {
-                            console.log('error', new Error('sftp2', "SFTP abrupt closure"))
+                            console.log('error', new Error('sftp2', "SFTP abrupt closure"));
                         }
                     });
 
@@ -200,9 +214,9 @@ module.exports = function (options, callback) {
             });
 
             c.on('close', function (had_error) {
-                if (!finished) {
-                    console.log('sftp2', "SFTP abrupt closure");
-                }
+                //if (!finished) {
+                //    console.log('sftp2', "SFTP abrupt closure");
+                //}
                 // console.log('Connection :: close', had_error !== false ? "with error" : "");
 
             });
