@@ -71,7 +71,6 @@ module.exports = function (options, callback, fileCallback) {
                 if (fileLength <= 0) {
                     console.log('sftp2:', chalk.yellow('No files uploaded'));
                 } else {
-                  console.log('sftp2: matched: '+fileLength,items);
                     return uploadFiles(items);
                 }
             });
