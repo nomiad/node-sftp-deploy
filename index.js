@@ -70,6 +70,8 @@ module.exports = function (options, callback, fileCallback) {
 
                 if (fileLength <= 0) {
                     console.log('sftp2:', chalk.yellow('No files uploaded'));
+                    if (callback) callback({ filesUploaded: 0});
+                    resolve({ filesUploaded: 0});
                 } else {
                     return uploadFiles(items);
                 }
@@ -170,7 +172,7 @@ module.exports = function (options, callback, fileCallback) {
                         callback();
                     }
 
-                    resolve()
+                    resolve({ filesUploaded: fileCount})
 
 
 
