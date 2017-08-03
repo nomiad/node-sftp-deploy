@@ -144,10 +144,9 @@ module.exports = function (options, callback, fileCallback) {
                                 if (fileCallback) fileCallback(false, relativePath, err);
                                 throw new Error('sftp2', err);
                             } else {
-
                                 fileCount++;
-                                if (fileCallback) fileCallback(true, relativePath);
-
+                                if (fileCallback) fileCallback(true, relativePath, fileCount, fileLength);
+                                
                             }
 
                             done();
